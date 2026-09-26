@@ -39,7 +39,7 @@ export default function Home() {
             <a href="#faq" className="transition hover:text-slate-950">FAQ</a>
           </nav>
           <div className="flex items-center gap-2">
-            <Link href="/login" className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Log in</Link>
+            <Link href="/login" className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Log in</Link><Link href="/admin/login" className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 sm:inline-flex">Admin</Link>
             <Link href="/register" className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">Get started</Link>
           </div>
         </div>
@@ -138,7 +138,7 @@ export default function Home() {
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-10 sm:px-8 md:flex-row md:items-center md:justify-between">
           <div><p className="font-bold text-slate-950">Malvis Digital Growth</p><p className="mt-1 text-sm text-slate-500">Digital marketing and business growth platform.</p></div>
-          <div className="flex flex-wrap gap-5 text-sm font-semibold text-slate-600"><a href="#features" className="hover:text-slate-950">Features</a><a href="#how-it-works" className="hover:text-slate-950">How it works</a><Link href="/login" className="hover:text-slate-950">Login</Link><Link href="/register" className="hover:text-slate-950">Register</Link></div>
+          <div className="flex flex-wrap gap-5 text-sm font-semibold text-slate-600"><a href="#features" className="hover:text-slate-950">Features</a><a href="#how-it-works" className="hover:text-slate-950">How it works</a><Link href="/login" className="hover:text-slate-950">Login</Link><Link href="/admin/login" className="hover:text-slate-950">Admin</Link><Link href="/register" className="hover:text-slate-950">Register</Link></div>
         </div>
       </footer>
     </main>
