@@ -10,6 +10,7 @@ export default function LoginPage() {
           Use your Nigerian phone number and password. No OTP.
         </p>
         <AuthForm mode="login" />
+        <p className="mt-4 text-sm text-slate-600">Admin?{" "}<Link className="font-semibold text-black underline" href="/admin/login">Open admin login</Link></p>
         <p className="mt-6 text-sm text-slate-600">
           New here?{" "}
           <Link className="font-semibold text-black underline" href="/register">
