@@ -1,0 +1,25 @@
+"use client";
+import {useState} from "react";
+import {createClient} from "@/lib/supabase/client";
+
+type Props={users:any[];businesses:any[];campaigns:any[];ads:any[];leads:any[];referrals:any[]};
+
+export default function AdminManager({users:initialUsers,businesses:initialBusinesses,campaigns:initialCampaigns,ads:initialAds,leads:initialLeads,referrals:initialReferrals}:Props){
+ const [users,setUsers]=useState(initialUsers),[businesses,setBusinesses]=useState(initialBusinesses),[campaigns,setCampaigns]=useState(initialCampaigns),[ads,setAds]=useState(initialAds),[leads,setLeads]=useState(initialLeads),[referrals,setReferrals]=useState(initialReferrals),[message,setMessage]=useState("");
+ const s=createClient();
+ async function update(table:string,id:string,patch:any,setter:(fn:any)=>void){
+  setMessage("");
+  const {data,error}=await s.from(table).update(patch).eq("id",id).select().single();
+  if(error){setMessage(error.message);return;}
+  setter((rows:any[])=>rows.map(r=>r.id===id?data:r)); setMessage("Updated successfully.");
+ }
+ return <div className="mt-6 space-y-6">
+  {message&&<p className="rounded-xl border bg-white p-3 text-sm text-slate-700">{message}</p>}
+  <section className="rounded-2xl bg-white p-5 shadow-sm"><h2 className="font-semibold">Users</h2><div className="mt-4 space-y-2">{users.map(u=><div key={u.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"><div><strong>{u.full_name}</strong><p className="text-xs text-slate-500">{u.phone} · {u.role}</p></div><select value={u.role} onChange={e=>update("profiles",u.id,{role:e.target.value},setUsers)} className="rounded-lg border p-2 text-sm"><option value="business_owner">business owner</option><option value="admin">admin</option></select></div>)}</div></section>
+  <section className="rounded-2xl bg-white p-5 shadow-sm"><h2 className="font-semibold">Businesses</h2><div className="mt-4 space-y-2">{businesses.map(b=><div key={b.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"><div><strong>{b.name}</strong><p className="text-xs text-slate-500">{b.category||"No category"} · {b.city||"No city"}</p></div><select value={b.status} onChange={e=>update("businesses",b.id,{status:e.target.value},setBusinesses)} className="rounded-lg border p-2 text-sm"><option>active</option><option>pending</option><option>suspended</option></select></div>)}</div></section>
+  <section className="rounded-2xl bg-white p-5 shadow-sm"><h2 className="font-semibold">Advertisements</h2><div className="mt-4 space-y-2">{ads.map(a=><div key={a.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"><div><strong>{a.title}</strong><p className="text-xs text-slate-500">NGN {Number(a.budget_ngn||0).toLocaleString()} · {a.placement}</p></div><select value={a.status} onChange={e=>update("advertisements",a.id,{status:e.target.value},setAds)} className="rounded-lg border p-2 text-sm"><option>pending</option><option>active</option><option>rejected</option><option>paused</option></select></div>)}</div></section>
+  <section className="rounded-2xl bg-white p-5 shadow-sm"><h2 className="font-semibold">Campaigns</h2><div className="mt-4 space-y-2">{campaigns.map(c=><div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"><div><strong>{c.name}</strong><p className="text-xs text-slate-500">NGN {Number(c.budget_ngn||0).toLocaleString()} · {c.objective||"No objective"}</p></div><select value={c.status} onChange={e=>update("campaigns",c.id,{status:e.target.value},setCampaigns)} className="rounded-lg border p-2 text-sm"><option>draft</option><option>active</option><option>paused</option><option>completed</option></select></div>)}</div></section>
+  <section className="rounded-2xl bg-white p-5 shadow-sm"><h2 className="font-semibold">Leads</h2><div className="mt-4 space-y-2">{leads.map(l=><div key={l.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"><div><strong>{l.name}</strong><p className="text-xs text-slate-500">{l.phone||l.email||"No contact"}</p></div><select value={l.status} onChange={e=>update("leads",l.id,{status:e.target.value},setLeads)} className="rounded-lg border p-2 text-sm"><option>new</option><option>contacted</option><option>qualified</option><option>converted</option><option>closed</option></select></div>)}</div></section>
+  <section className="rounded-2xl bg-white p-5 shadow-sm"><h2 className="font-semibold">Referrals</h2><div className="mt-4 space-y-2">{referrals.map(r=><div key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"><strong>{r.referral_code}</strong><select value={r.status} onChange={e=>update("referrals",r.id,{status:e.target.value},setReferrals)} className="rounded-lg border p-2 text-sm"><option>pending</option><option>qualified</option><option>converted</option><option>paid</option><option>rejected</option></select></div>)}</div></section>
+ </div>
+}
