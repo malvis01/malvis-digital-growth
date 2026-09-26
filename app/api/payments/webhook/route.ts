@@ -16,6 +16,8 @@ export async function POST(req:Request){
  if(amount!==Math.round(Number(payment.amount_ngn)*100))return NextResponse.json({error:"Amount mismatch"},{status:400});
  const now=new Date(),end=new Date(now.getTime()+30*86400000);
  await s.from("payments").update({status:"paid",paid_at:now.toISOString(),provider_reference:ref,metadata:event.data}).eq("id",payment.id).eq("status","pending");
+ const platformFee=Math.round(Number(payment.amount_ngn)*0.05*100)/100;
+ if(platformFee>0){const {data:existing}=await s.from("platform_ledger").select("id").eq("reference_id",payment.id).eq("source","subscription").maybeSingle();if(!existing)await s.from("platform_ledger").insert({source:"subscription",reference_id:payment.id,entry_type:"commission",amount_ngn:platformFee,status:"available",notes:"5% platform commission from subscription payment"});}
  await s.from("subscriptions").update({status:"active",starts_at:now.toISOString(),ends_at:end.toISOString()}).eq("id",payment.subscription_id);
  await s.from("invoices").update({status:"paid"}).eq("payment_id",payment.id);
  const {data:b}=await s.from("businesses").select("owner_id").eq("id",payment.business_id).maybeSingle();
