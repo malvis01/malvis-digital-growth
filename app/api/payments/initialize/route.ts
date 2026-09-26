@@ -14,7 +14,25 @@ export async function POST(req:Request){
 
  const {data:plan}=await s.from("plans").select("id,name,slug,price_ngn,billing_interval").eq("id",planId).eq("active",true).maybeSingle();
  if(!plan)return NextResponse.json({error:"Plan not found."},{status:404});
- if(Number(plan.price_ngn)<=0)return NextResponse.json({ok:true,free:true});
+ if(Number(plan.price_ngn)<=0){
+  const starts=new Date();
+  const ends=new Date(starts.getTime()+30*86400000);
+  const {data:freeSub,error:freeSubError}=await s.from("subscriptions").insert({
+    business_id:b.id,
+    plan_id:plan.id,
+    status:"active",
+    starts_at:starts.toISOString(),
+    ends_at:ends.toISOString()
+  }).select("id").single();
+  if(freeSubError)return NextResponse.json({error:freeSubError.message},{status:400});
+  await s.from("notifications").insert({
+    user_id:user.id,
+    title:"Free plan activated",
+    message:"Your free plan is now active.",
+    type:"billing"
+  });
+  return NextResponse.json({ok:true,free:true,subscriptionId:freeSub.id});
+ }
 
  const email=billingEmail||String(b.email||user.email||"").trim().toLowerCase();
  if(!/^\S+@\S+\.\S+$/.test(email))return NextResponse.json({error:"A valid billing email is required for Paystack checkout."},{status:400});
