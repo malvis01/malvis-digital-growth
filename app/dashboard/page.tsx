@@ -21,13 +21,21 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: business }, { count: productCount }, { count: serviceCount }, { count: leadCount }, { count: campaignCount }] =
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id,name,category,status,city,state")
+    .eq("owner_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  const businessId = business?.id ?? "";
+
+  const [{ count: productCount }, { count: serviceCount }, { count: leadCount }, { count: campaignCount }] =
     await Promise.all([
-      supabase.from("businesses").select("id,name,category,status,city,state").eq("owner_id", user.id).limit(1).maybeSingle(),
-      supabase.from("products").select("*", { count: "exact", head: true }).eq("business_id", business?.id ?? ""),
-      supabase.from("services").select("*", { count: "exact", head: true }).eq("business_id", business?.id ?? ""),
-      supabase.from("leads").select("*", { count: "exact", head: true }).eq("business_id", business?.id ?? ""),
-      supabase.from("campaigns").select("*", { count: "exact", head: true }).eq("business_id", business?.id ?? ""),
+      supabase.from("products").select("*", { count: "exact", head: true }).eq("business_id", businessId),
+      supabase.from("services").select("*", { count: "exact", head: true }).eq("business_id", businessId),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("business_id", businessId),
+      supabase.from("campaigns").select("*", { count: "exact", head: true }).eq("business_id", businessId),
     ]);
 
   return (
