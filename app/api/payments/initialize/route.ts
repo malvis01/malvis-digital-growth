@@ -10,7 +10,7 @@ export async function POST(req:Request){
  const ref="INV-"+Date.now(); await s.from("invoices").insert({business_id:b.id,payment_id:pay.id,invoice_number:ref,amount_ngn:plan.price_ngn,status:"issued"});
  const key=process.env.PAYSTACK_SECRET_KEY; if(!key)return NextResponse.json({error:"Payment provider is not configured yet."},{status:503});
  const base=process.env.NEXT_PUBLIC_APP_URL||req.headers.get("origin")||"";
- const res=await fetch("https://api.paystack.co/transaction/initialize",{method:"POST",headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({email:user.email,amount:Math.round(Number(plan.price_ngn)*100),reference:pay.id,callback_url:base+"/dashboard/payments"})});
+ const res=await fetch("https://api.paystack.co/transaction/initialize",{method:"POST",headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({email:user.email,amount:Math.round(Number(plan.price_ngn)*100),reference:pay.id,callback_url:base+"/api/payments/verify"})});
  const data=await res.json(); if(!res.ok||!data.status)return NextResponse.json({error:data.message||"Unable to initialize payment."},{status:502});
  return NextResponse.json({authorization_url:data.data.authorization_url,reference:pay.id});
 }
