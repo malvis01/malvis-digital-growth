@@ -11,6 +11,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Package source ZIP
+        run: git archive --format=zip --output=malvis-digital-growth.zip HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: malvis-digital-growth-source
+          path: malvis-digital-growth.zip
+          retention-days: 7
       - run: npm install
       - run: npm run build
         env:
