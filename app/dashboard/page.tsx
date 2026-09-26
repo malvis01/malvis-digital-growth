@@ -11,6 +11,9 @@ const cards = [
   ["Referrals","Track referral activity and commissions.","/dashboard/referrals"],
   ["Analytics","Understand views, clicks and leads.","/dashboard/analytics"],
   ["Notifications","Keep up with important account activity.","/dashboard/notifications"],
+  ["Plans","Manage your growth subscription.","/dashboard/plans"],
+  ["Payments","Review payment records.","/dashboard/payments"],
+  ["Commissions","Track referral commissions.","/dashboard/commissions"],
 ];
 
 export default async function DashboardPage() {
