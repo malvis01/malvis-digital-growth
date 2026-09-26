@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeNigeriaPhone } from "@/lib/phone";
+import { phoneToAuthEmail } from "@/lib/phoneAuth";
 
 type Mode = "login" | "register";
 
@@ -28,9 +29,11 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
       const supabase = createClient();
 
+      const authEmail = phoneToAuthEmail(normalizedPhone);
+
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({
-          phone: normalizedPhone,
+          email: authEmail,
           password,
         });
 
@@ -44,15 +47,22 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         throw new Error("Enter your business name.");
       }
 
-      const { error } = await supabase.auth.signUp({
-        phone: normalizedPhone,
+      const { data, error } = await supabase.auth.signUp({
+        email: authEmail,
         password,
         options: {
           data: {
+            phone: normalizedPhone,
             business_name: businessName.trim(),
           },
         },
       });
+
+      if (error) throw error;
+
+      if (!data.session) {
+        throw new Error("Account created, but Supabase email confirmation is enabled. Disable Confirm email in Authentication settings; this login uses phone + password only and does not use OTP.");
+      }
 
       if (error) throw error;
 
