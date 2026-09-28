@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 
 const cards = [
   ["Business Profile","Manage your public business information.","/dashboard/business"],
+  ["Business Videos","Upload short promotional videos for your business.","/dashboard/media"],
+  ["Movies & Videos","Watch approved media published on the platform.","/media"],
   ["Products & Services","Add offers customers can discover.","/dashboard/offers"],
   ["Leads","Capture and manage customer enquiries.","/dashboard/leads"],
   ["Campaigns","Plan and track marketing campaigns.","/dashboard/campaigns"],
