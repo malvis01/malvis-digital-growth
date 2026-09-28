@@ -56,7 +56,7 @@ export default function Home() {
               Malvis Digital Growth brings your business presence, products, services, campaigns, advertising, leads and growth insights together in one simple platform.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/register" className="rounded-2xl bg-slate-950 px-6 py-3.5 text-center font-bold text-white shadow-lg shadow-slate-900/10 hover:bg-slate-800">Create your business account</Link>
+              <Link href="/register" className="rounded-2xl bg-slate-950 px-6 py-3.5 text-center font-bold text-white shadow-lg shadow-slate-900/10 hover:bg-slate-800">Create your business account</Link><Link href="/media" className="rounded-2xl border border-slate-300 bg-white px-6 py-3.5 text-center font-bold text-slate-900 hover:bg-slate-50">Watch Movies & Videos</Link>
               <Link href="/login" className="rounded-2xl border border-slate-300 bg-white px-6 py-3.5 text-center font-bold text-slate-900 hover:bg-slate-50">Log in to dashboard</Link>
             </div>
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
