@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { detectPlatform, getEmbedUrl } from "../media-utils";
 import ShareButtons from "../ShareButtons";
+import MediaViewTracker from "../MediaViewTracker";
 
 export default async function MediaDetail({params}:{params:Promise<{id:string}>}){
  const {id}=await params; const s=await createClient();
@@ -10,7 +11,7 @@ export default async function MediaDetail({params}:{params:Promise<{id:string}>}
  if(!m) notFound();
  const platform=detectPlatform(m.source_url||""); const embed=getEmbedUrl(m.source_url||"",platform);
  const {count}=await s.from("media_views").select("*",{count:"exact",head:true}).eq("media_id",id);
- return <main className="min-h-screen bg-slate-50 p-5"><article className="mx-auto max-w-3xl">
+ return <main className="min-h-screen bg-slate-50 p-5"><MediaViewTracker mediaId={id}/><article className="mx-auto max-w-3xl">
   <Link href="/media" className="text-sm font-semibold">← Movies & Videos</Link>
   <div className="mt-5 overflow-hidden rounded-2xl bg-white shadow-sm">
    {embed ? <div className="aspect-video bg-black"><iframe src={embed} title={m.title} className="h-full w-full border-0" allow="autoplay; encrypted-media; picture-in-picture; web-share" allowFullScreen/></div> : m.source_url ? <div className="p-8 text-center"><p className="font-semibold">This video is hosted on another platform.</p></div> : null}
