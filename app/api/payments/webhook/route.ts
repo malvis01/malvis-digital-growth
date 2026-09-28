@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       if(!already){
         const referralFee=Math.round(Number(payment.amount_ngn)*0.05*100)/100;
         if(referralFee>0){
-          await s.from("commissions").insert({referral_id:referral.id,profile_id:referral.referrer_id,payment_id:payment.id,amount_ngn:referralFee,status:"pending"});\n          await s.from("referrals").update({status:"earned"}.eq("id",referral.id);
+          await s.from("commissions").insert({referral_id:referral.id,profile_id:referral.referrer_id,payment_id:payment.id,amount_ngn:referralFee,status:"pending"});\n          await s.from("referrals").update({status:"earned"}).eq("id",referral.id);
           await s.from("notifications").insert({user_id:referral.referrer_id,title:"Referral commission earned",message:"You earned a 5% referral commission of ₦"+referralFee.toLocaleString()+" from a qualifying subscription payment.",type:"commission"});
         }
       }
