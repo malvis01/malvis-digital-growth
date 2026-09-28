@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeNigeriaPhone } from "@/lib/phone";
 import { phoneToAuthEmail } from "@/lib/phoneAuth";
+import PasswordRequirements from "./PasswordRequirements";
 
 type Mode = "login" | "register";
 
@@ -23,8 +24,8 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
     try {
       const normalizedPhone = normalizeNigeriaPhone(phone);
-      if (password.length < 8) {
-        throw new Error("Password must be at least 8 characters.");
+      if (password.length < 8 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+        throw new Error("Password must be at least 8 characters and include uppercase, lowercase, number and symbol.");
       }
 
       const supabase = createClient();
@@ -109,6 +110,8 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         autoComplete={mode === "login" ? "current-password" : "new-password"}
         required
       />
+
+      {mode === "register" && <PasswordRequirements password={password} />}
 
       {message && (
         <p className="rounded-xl border bg-slate-50 p-3 text-sm text-slate-700">
