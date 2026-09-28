@@ -30,7 +30,7 @@ async function getPublicVideos() {
     .from("media_items")
     .select("id,title,description,category,media_kind,source_url,storage_path,poster_url")
     .eq("status", "approved")
-    .eq("media_kind", "business_promotion")
+    .in("media_kind", ["video", "business_promotion"])
     .order("published_at", { ascending: false })
     .limit(12);
 
@@ -114,7 +114,7 @@ export default async function Home() {
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.2em] text-indigo-600">Public videos</p>
                 <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">See what businesses are sharing</h2>
-                <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-600">Approved business videos are available to everyone on the platform — no login required.</p>
+                <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-600">Approved business and platform videos are available to everyone on the platform — no login required.</p>
               </div>
               <Link href="/media" className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-center font-bold text-slate-900 hover:bg-slate-100">View all videos</Link>
             </div>
