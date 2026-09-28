@@ -6,7 +6,7 @@ import { detectPlatform, getEmbedUrl } from "../media-utils";
 import ShareButtons from "../ShareButtons";
 import MediaViewTracker from "../MediaViewTracker";
 
-export default async function MediaDetail({params}:{params:Promise<{id:string}>}){
+export async function generateMetadata({params}:{params:Promise<{id:string}>}){\n const {id}=await params; const s=await createClient(); const {data:m}=await s.from("media_items").select("title,description,poster_url").eq("id",id).eq("status","approved").maybeSingle();\n return {title:m?.title?`${m.title} | Malvis Digital Growth`:"Malvis Digital Growth",description:m?.description||"Watch this video on Malvis Digital Growth.",openGraph:{title:m?.title||"Malvis Digital Growth",description:m?.description||"Watch this video on Malvis Digital Growth.",images:m?.poster_url?[m.poster_url]:[]}};\n}\n\nexport default async function MediaDetail({params}:{params:Promise<{id:string}>}){
  const {id}=await params; const s=await createClient();
  const {data:m}=await s.from("media_items").select("*").eq("id",id).eq("status","approved").maybeSingle();
  if(!m) notFound();
