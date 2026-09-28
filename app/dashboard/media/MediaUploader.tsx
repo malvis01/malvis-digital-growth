@@ -6,7 +6,8 @@ export default function MediaUploader({userId,businessId,businessName,monthlyUse
  const [file,setFile]=useState<File|null>(null),[title,setTitle]=useState(""),[description,setDescription]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
  async function submit(e:React.FormEvent){
   e.preventDefault();setMessage("");
-  if(!paidPlan && monthlyUsed >= 2){setMessage("You have used your 2 free business promotion videos for this month. Please upgrade to a paid plan to post more.");return}\n  if(!file||!title.trim()){setMessage("Add a video and title.");return}
+  if(!paidPlan && monthlyUsed >= 2){setMessage("You have used your 2 free business promotion videos for this month. Please upgrade to a paid plan to post more.");return}
+  if(!file||!title.trim()){setMessage("Add a video and title.");return}
   if(!file.type.startsWith("video/")){setMessage("Please select a video file.");return}
   if(file.size>100*1024*1024){setMessage("Video must be 100 MB or smaller.");return}
   setBusy(true);
@@ -16,8 +17,7 @@ export default function MediaUploader({userId,businessId,businessName,monthlyUse
   const s=createClient();const ext=file.name.split(".").pop()||"mp4";const path=userId+"/business/"+crypto.randomUUID()+"."+ext;
   const up=await s.storage.from("media").upload(path,file,{contentType:file.type});
   if(up.error){setMessage(up.error.message);setBusy(false);return}
-  const {data:url}=s.storage.from("media").getPublicUrl(path);
-  const ins=await s.from("media_items").insert({owner_id:userId,business_id:businessId,media_kind:"business_promotion",title:title.trim(),description:description.trim()||null,source_type:"upload",storage_path:path,source_url:url.publicUrl,duration_seconds:duration,rights_confirmed:true,download_allowed:false,status:"pending"});
+  const ins=await s.from("media_items").insert({owner_id:userId,business_id:businessId,media_kind:"business_promotion",title:title.trim(),description:description.trim()||null,source_type:"upload",storage_path:path,source_url:null,duration_seconds:duration,rights_confirmed:true,download_allowed:false,status:"pending"});
   if(ins.error){await s.storage.from("media").remove([path]);setMessage(ins.error.message.includes("free plan includes")?"You have used your 2 free business promotion videos for this month. Please upgrade to a paid plan to post more videos.":ins.error.message);setBusy(false);return}
   setFile(null);setTitle("");setDescription("");setMessage("Submitted. Your video is waiting for admin review.");setBusy(false);
  }
