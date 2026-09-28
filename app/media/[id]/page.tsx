@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import MediaActions from "../MediaActions";
 import { createClient } from "@/lib/supabase/server";
 import { detectPlatform, getEmbedUrl } from "../media-utils";
 import ShareButtons from "../ShareButtons";
