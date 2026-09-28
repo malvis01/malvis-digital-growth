@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
 const features = [
   { icon: "▦", title: "Business Profile", text: "Give customers one professional place to discover your business, products, services, contact details and offers." },
@@ -22,6 +23,26 @@ const faqs = [
   ["Can I promote products and services?", "Yes. Your business profile can present products and services, while campaigns, offers and advertising tools help you promote them."],
   ["Can I track potential customers?", "Yes. The platform includes lead-management features so you can keep interested prospects organized and follow up with them."],
 ];
+
+async function getPublicVideos() {
+  const s = await createClient();
+  const { data: items } = await s
+    .from("media_items")
+    .select("id,title,description,category,media_kind,source_url,storage_path,poster_url")
+    .eq("status", "approved")
+    .eq("media_kind", "business_promotion")
+    .order("published_at", { ascending: false })
+    .limit(12);
+
+  return Promise.all((items || []).map(async (m: any) => {
+    let videoUrl: string | null = null;
+    if (!m.source_url && m.storage_path) {
+      const { data } = await s.storage.from("media").createSignedUrl(m.storage_path, 3600);
+      videoUrl = data?.signedUrl || null;
+    }
+    return { ...m, videoUrl };
+  }));
+}
 
 export default function Home() {
   return (
@@ -84,6 +105,46 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {publicVideos.length > 0 && (
+        <section id="videos" className="border-b border-slate-200 bg-slate-50 py-20">
+          <div className="mx-auto max-w-7xl px-5 sm:px-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-indigo-600">Public videos</p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">See what businesses are sharing</h2>
+                <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-600">Approved business videos are available to everyone on the platform — no login required.</p>
+              </div>
+              <Link href="/media" className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-center font-bold text-slate-900 hover:bg-slate-100">View all videos</Link>
+            </div>
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {publicVideos.map((m: any) => (
+                <article key={m.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  {m.videoUrl ? (
+                    <div className="aspect-video bg-black">
+                      <video src={m.videoUrl} controls preload="metadata" playsInline className="h-full w-full object-contain" />
+                    </div>
+                  ) : m.source_url ? (
+                    <div className="aspect-video bg-slate-100">
+                      <div className="flex h-full items-center justify-center p-6 text-center">
+                        <Link href={`/media/${m.id}`} className="rounded-xl bg-slate-950 px-5 py-3 font-bold text-white">Watch video</Link>
+                      </div>
+                    </div>
+                  ) : m.poster_url ? (
+                    <img src={m.poster_url} alt="" className="aspect-video w-full object-cover" />
+                  ) : null}
+                  <div className="p-5">
+                    <p className="text-xs font-bold uppercase text-indigo-600">{m.category || "Business video"}</p>
+                    <h3 className="mt-2 text-lg font-bold text-slate-950">{m.title}</h3>
+                    {m.description && <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{m.description}</p>}
+                    <Link href={`/media/${m.id}`} className="mt-4 inline-flex text-sm font-bold text-slate-900 underline underline-offset-4">Open video page →</Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="border-b border-slate-200 bg-white py-16">
         <div className="mx-auto max-w-5xl px-5 text-center sm:px-8">
