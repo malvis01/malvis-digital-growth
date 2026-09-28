@@ -44,7 +44,8 @@ async function getPublicVideos() {
   }));
 }
 
-export default function Home() {
+export default async function Home() {
+  const publicVideos = await getPublicVideos();
   return (
     <main className="min-h-screen overflow-hidden bg-white">
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur">
