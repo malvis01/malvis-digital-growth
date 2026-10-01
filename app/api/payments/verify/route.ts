@@ -2,25 +2,234 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
-export async function GET(req:Request){
- const url=new URL(req.url),ref=url.searchParams.get("reference");if(!ref)return NextResponse.json({error:"Missing reference"},{status:400});
- const s=await createClient(),admin=createServiceClient();const{data:{user}}=await s.auth.getUser();if(!user)return NextResponse.redirect(new URL("/login",url));
- const{data:payment}=await s.from("payments").select("id,business_id,subscription_id,advertisement_id,amount_ngn,status").eq("id",ref).maybeSingle();if(!payment)return NextResponse.json({error:"Payment not found"},{status:404});
- const{data:b}=await s.from("businesses").select("id").eq("id",payment.business_id).eq("owner_id",user.id).maybeSingle();if(!b)return NextResponse.json({error:"Forbidden"},{status:403});
- if(payment.status==="paid")return NextResponse.redirect(new URL(payment.advertisement_id?"/dashboard/ads?status=success":"/dashboard/payments?status=success",url));
- const key=process.env.PAYSTACK_SECRET_KEY;if(!key)return NextResponse.json({error:"Provider not configured"},{status:503});
- let res:Response;try{res=await fetch("https://api.paystack.co/transaction/verify/"+encodeURIComponent(ref),{headers:{Authorization:"Bearer "+key}})}catch{return NextResponse.redirect(new URL("/dashboard/payments?status=verification_failed",url))}
- const data=await res.json().catch(()=>null);if(!res.ok||!data?.status)return NextResponse.redirect(new URL("/dashboard/payments?status=verification_failed",url));
- const paid=data.data?.status==="success"&&Number(data.data?.amount)===Math.round(Number(payment.amount_ngn)*100);if(!paid)return NextResponse.redirect(new URL("/dashboard/payments?status=payment_not_successful",url));
- const{error}=await admin.from("payments").update({status:"paid",paid_at:new Date().toISOString(),provider_reference:data.data.reference,metadata:data.data}).eq("id",payment.id).eq("status","pending");if(error)return NextResponse.redirect(new URL("/dashboard/payments?status=verification_failed",url));
- if(payment.metadata?.payment_kind==="marketing_service"){
-  const fee=Math.round(Number(payment.amount_ngn)*100)/100;
-  if(fee>0)await admin.from("platform_ledger").upsert({source:"marketing_service",reference_id:payment.id,entry_type:"commission",amount_ngn:fee,status:"available",notes:"Marketing service fee paid through Paystack"},{onConflict:"source,reference_id",ignoreDuplicates:true});
-  await admin.from("invoices").update({status:"paid"}).eq("payment_id",payment.id);
-  await admin.from("notifications").insert({user_id:user.id,title:"Marketing service payment successful",message:String(payment.metadata?.service_name||"Marketing service")+" payment was confirmed. We will contact you about delivery of the service.",type:"billing"});
-  return NextResponse.redirect(new URL("/dashboard/payments?status=success",url));
- }
- if(payment.advertisement_id){const fee=Math.round(Number(payment.amount_ngn)*0.03*100)/100;if(fee>0)await admin.from("platform_ledger").upsert({source:"advertisement",reference_id:payment.id,entry_type:"commission",amount_ngn:fee,status:"available",notes:"3% platform commission from paid advertisement budget"},{onConflict:"source,reference_id",ignoreDuplicates:true});await admin.from("advertisements").update({status:"active",paid_at:new Date().toISOString(),payment_id:payment.id}).eq("id",payment.advertisement_id).eq("status","pending");await admin.from("invoices").update({status:"paid"}).eq("payment_id",payment.id);await admin.from("notifications").insert({user_id:user.id,title:"Advertisement payment successful",message:"Your advertisement budget was paid and the advertisement is now active.",type:"billing"});return NextResponse.redirect(new URL("/dashboard/ads?status=success",url))}
- if(payment.subscription_id){const now=new Date(),end=new Date(now.getTime()+30*86400000),fee=Math.round(Number(payment.amount_ngn)*0.05*100)/100;if(fee>0)await admin.from("platform_ledger").upsert({source:"subscription",reference_id:payment.id,entry_type:"commission",amount_ngn:fee,status:"available",notes:"5% platform commission from subscription payment"},{onConflict:"source,reference_id",ignoreDuplicates:true});await admin.from("subscriptions").update({status:"active",starts_at:now.toISOString(),ends_at:end.toISOString()}).eq("id",payment.subscription_id);await admin.from("invoices").update({status:"paid"}).eq("payment_id",payment.id);const{data:referral}=await admin.from("referrals").select("id,referrer_id").eq("referred_business_id",payment.business_id).maybeSingle();if(referral){const{data:already}=await admin.from("commissions").select("id").eq("referral_id",referral.id).maybeSingle();if(!already){const rc=Math.round(Number(payment.amount_ngn)*0.05*100)/100;if(rc>0){await admin.from("commissions").insert({referral_id:referral.id,profile_id:referral.referrer_id,payment_id:payment.id,amount_ngn:rc,status:"pending"});await admin.from("referrals").update({status:"earned"}).eq("id",referral.id);}}}await admin.from("notifications").insert({user_id:user.id,title:"Payment successful",message:"Your subscription payment was confirmed and your plan is active.",type:"billing"});}
- return NextResponse.redirect(new URL("/dashboard/payments?status=success",url));
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const ref = url.searchParams.get("reference");
+  if (!ref) return NextResponse.json({ error: "Missing reference" }, { status: 400 });
+
+  const s = await createClient();
+  const admin = createServiceClient();
+  const { data: { user } } = await s.auth.getUser();
+  if (!user) return NextResponse.redirect(new URL("/login", url));
+
+  const { data: payment } = await admin
+    .from("payments")
+    .select("id,business_id,subscription_id,advertisement_id,amount_ngn,status,metadata")
+    .eq("id", ref)
+    .maybeSingle();
+
+  if (!payment) return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+
+  const { data: business } = await s
+    .from("businesses")
+    .select("id")
+    .eq("id", payment.business_id)
+    .eq("owner_id", user.id)
+    .maybeSingle();
+
+  if (!business) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  if (payment.status === "paid") {
+    return NextResponse.redirect(
+      new URL(
+        payment.advertisement_id
+          ? "/dashboard/ads?status=success"
+          : "/dashboard/payments?status=success",
+        url,
+      ),
+    );
+  }
+
+  const key = process.env.PAYSTACK_SECRET_KEY;
+  if (!key) return NextResponse.json({ error: "Provider not configured" }, { status: 503 });
+
+  let res: Response;
+  try {
+    res = await fetch(
+      "https://api.paystack.co/transaction/verify/" + encodeURIComponent(ref),
+      { headers: { Authorization: "Bearer " + key } },
+    );
+  } catch {
+    return NextResponse.redirect(new URL("/dashboard/payments?status=verification_failed", url));
+  }
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.status) {
+    return NextResponse.redirect(new URL("/dashboard/payments?status=verification_failed", url));
+  }
+
+  const paid =
+    data.data?.status === "success" &&
+    Number(data.data?.amount) === Math.round(Number(payment.amount_ngn) * 100);
+
+  if (!paid) {
+    return NextResponse.redirect(new URL("/dashboard/payments?status=payment_not_successful", url));
+  }
+
+  const now = new Date();
+  const { data: markedPaid, error } = await admin
+    .from("payments")
+    .update({
+      status: "paid",
+      paid_at: now.toISOString(),
+      provider_reference: data.data.reference,
+      metadata: data.data,
+    })
+    .eq("id", payment.id)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.redirect(new URL("/dashboard/payments?status=verification_failed", url));
+  }
+
+  // The webhook can win the race. In that case the payment is already processed,
+  // so there is nothing else for this callback to do.
+  if (!markedPaid) {
+    return NextResponse.redirect(
+      new URL(
+        payment.advertisement_id ? "/dashboard/ads?status=success" : "/dashboard/payments?status=success",
+        url,
+      ),
+    );
+  }
+
+  if (payment.metadata?.payment_kind === "marketing_service") {
+    const fee = Math.round(Number(payment.amount_ngn) * 100) / 100;
+    if (fee > 0) {
+      await admin.from("platform_ledger").upsert(
+        {
+          source: "marketing_service",
+          reference_id: payment.id,
+          entry_type: "commission",
+          amount_ngn: fee,
+          status: "available",
+          notes: "Marketing service payment recorded through Paystack",
+        },
+        { onConflict: "source,reference_id", ignoreDuplicates: true },
+      );
+    }
+
+    await admin.from("invoices").update({ status: "paid" }).eq("payment_id", payment.id);
+    await admin.from("notifications").insert({
+      user_id: user.id,
+      title: "Marketing service payment successful",
+      message:
+        String(payment.metadata?.service_name || "Marketing service") +
+        " payment was confirmed. We will contact you about delivery of the service.",
+      type: "billing",
+    });
+
+    return NextResponse.redirect(new URL("/dashboard/payments?status=success", url));
+  }
+
+  if (payment.advertisement_id) {
+    const fee = Math.round(Number(payment.amount_ngn) * 0.03 * 100) / 100;
+    if (fee > 0) {
+      await admin.from("platform_ledger").upsert(
+        {
+          source: "advertisement",
+          reference_id: payment.id,
+          entry_type: "commission",
+          amount_ngn: fee,
+          status: "available",
+          notes: "3% platform commission from paid advertisement budget",
+        },
+        { onConflict: "source,reference_id", ignoreDuplicates: true },
+      );
+    }
+
+    await admin
+      .from("advertisements")
+      .update({ status: "active", paid_at: now.toISOString(), payment_id: payment.id })
+      .eq("id", payment.advertisement_id)
+      .eq("status", "pending");
+
+    await admin.from("invoices").update({ status: "paid" }).eq("payment_id", payment.id);
+    await admin.from("notifications").insert({
+      user_id: user.id,
+      title: "Advertisement payment successful",
+      message: "Your advertisement budget was paid and the advertisement is now active.",
+      type: "billing",
+    });
+
+    return NextResponse.redirect(new URL("/dashboard/ads?status=success", url));
+  }
+
+  if (payment.subscription_id) {
+    const end = new Date(now.getTime() + 30 * 86400000);
+    const fee = Math.round(Number(payment.amount_ngn) * 0.05 * 100) / 100;
+
+    if (fee > 0) {
+      await admin.from("platform_ledger").upsert(
+        {
+          source: "subscription",
+          reference_id: payment.id,
+          entry_type: "commission",
+          amount_ngn: fee,
+          status: "available",
+          notes: "5% platform commission from subscription payment",
+        },
+        { onConflict: "source,reference_id", ignoreDuplicates: true },
+      );
+    }
+
+    await admin
+      .from("subscriptions")
+      .update({
+        status: "active",
+        starts_at: now.toISOString(),
+        ends_at: end.toISOString(),
+      })
+      .eq("id", payment.subscription_id);
+
+    await admin.from("invoices").update({ status: "paid" }).eq("payment_id", payment.id);
+
+    const { data: referral } = await admin
+      .from("referrals")
+      .select("id,referrer_id")
+      .eq("referred_business_id", payment.business_id)
+      .maybeSingle();
+
+    if (referral) {
+      const { data: already } = await admin
+        .from("commissions")
+        .select("id")
+        .eq("referral_id", referral.id)
+        .maybeSingle();
+
+      if (!already) {
+        const referralCommission = Math.round(Number(payment.amount_ngn) * 0.05 * 100) / 100;
+        if (referralCommission > 0) {
+          await admin.from("commissions").insert({
+            referral_id: referral.id,
+            profile_id: referral.referrer_id,
+            payment_id: payment.id,
+            amount_ngn: referralCommission,
+            status: "pending",
+          });
+          await admin.from("referrals").update({ status: "earned" }).eq("id", referral.id);
+          await admin.from("notifications").insert({
+            user_id: referral.referrer_id,
+            title: "Referral commission earned",
+            message:
+              "You earned a 5% referral commission of ₦" +
+              referralCommission.toLocaleString() +
+              " from a qualifying subscription payment.",
+            type: "commission",
+          });
+        }
+      }
+    }
+
+    await admin.from("notifications").insert({
+      user_id: user.id,
+      title: "Payment successful",
+      message: "Your subscription payment was confirmed and your plan is active.",
+      type: "billing",
+    });
+  }
+
+  return NextResponse.redirect(new URL("/dashboard/payments?status=success", url));
 }
