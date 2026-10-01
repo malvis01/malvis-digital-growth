@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeNigeriaPhone } from "@/lib/phone";
+import { phoneToAuthEmail } from "@/lib/phoneAuth";
 import PasswordRequirements from "./PasswordRequirements";
 
 type Mode = "login" | "register";
@@ -23,19 +24,30 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
     try {
       const normalizedPhone = normalizeNigeriaPhone(phone);
-      if (password.length < 8 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-        throw new Error("Password must be at least 8 characters and include uppercase, lowercase, number and symbol.");
+      const authEmail = phoneToAuthEmail(normalizedPhone);
+
+      if (
+        password.length < 8 ||
+        !/[a-z]/.test(password) ||
+        !/[A-Z]/.test(password) ||
+        !/\d/.test(password) ||
+        !/[^A-Za-z0-9]/.test(password)
+      ) {
+        throw new Error(
+          "Password must be at least 8 characters and include uppercase, lowercase, number and symbol."
+        );
       }
 
       const supabase = createClient();
 
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({
-          phone: normalizedPhone,
+          email: authEmail,
           password,
         });
 
         if (error) throw error;
+
         router.push("/dashboard");
         router.refresh();
         return;
@@ -46,7 +58,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       }
 
       const { data, error } = await supabase.auth.signUp({
-        phone: normalizedPhone,
+        email: authEmail,
         password,
         options: {
           data: {
@@ -59,17 +71,19 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       if (error) throw error;
 
       if (!data.session) {
-        throw new Error("Account created, but phone confirmation is enabled. Disable Confirm phone in Supabase Authentication settings; this platform uses phone + password without OTP.");
+        throw new Error(
+          "Account created, but email confirmation is enabled. Disable email confirmation in Supabase Authentication settings because Malvis uses phone + password without OTP."
+        );
       }
-
-      if (error) throw error;
 
       setMessage("Account created successfully. You can now log in.");
       setPhone("");
       setPassword("");
       setBusinessName("");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Something went wrong.");
+      setMessage(
+        error instanceof Error ? error.message : "Something went wrong."
+      );
     } finally {
       setLoading(false);
     }
