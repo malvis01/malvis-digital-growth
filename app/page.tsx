@@ -78,7 +78,7 @@ export default async function Home() {
               Malvis Digital Growth brings your business presence, products, services, campaigns, advertising, leads and growth insights together in one simple platform.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/register" className="rounded-2xl bg-slate-950 px-6 py-3.5 text-center font-bold text-white shadow-lg shadow-slate-900/10 hover:bg-slate-800">Create your business account</Link><Link href="/media" className="rounded-2xl border border-slate-300 bg-white px-6 py-3.5 text-center font-bold text-slate-900 hover:bg-slate-50">Watch Movies & Videos</Link>
+              <Link href="/register" className="rounded-2xl bg-slate-950 px-6 py-3.5 text-center font-bold text-white shadow-lg shadow-slate-900/10 hover:bg-slate-800">Create your business account</Link><Link href="/services/marketing" className="rounded-2xl border border-slate-300 bg-white px-6 py-3.5 text-center font-bold text-slate-900 hover:bg-slate-50">Get marketing help</Link><Link href="/media" className="rounded-2xl border border-slate-300 bg-white px-6 py-3.5 text-center font-bold text-slate-900 hover:bg-slate-50">Watch Movies & Videos</Link>
               <Link href="/login" className="rounded-2xl border border-slate-300 bg-white px-6 py-3.5 text-center font-bold text-slate-900 hover:bg-slate-50">Log in to dashboard</Link>
             </div>
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
@@ -187,7 +187,7 @@ export default async function Home() {
           <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-8 sm:p-12">
             <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
               <div><p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">Ready when you are</p><h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Give your business a better place to grow.</h2><p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">Create your account, build your business presence and start organizing your digital marketing activity.</p></div>
-              <Link href="/register" className="rounded-2xl bg-slate-950 px-7 py-4 text-center font-bold text-white hover:bg-slate-800">Create business account</Link>
+              <div className="flex flex-col gap-3 sm:flex-row"><Link href="/register" className="rounded-2xl bg-slate-950 px-7 py-4 text-center font-bold text-white hover:bg-slate-800">Create business account</Link><Link href="/services/marketing" className="rounded-2xl border border-slate-300 bg-white px-7 py-4 text-center font-bold text-slate-900 hover:bg-slate-100">Get marketing help</Link></div>
             </div>
           </div>
         </div>
@@ -200,7 +200,7 @@ export default async function Home() {
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-10 sm:px-8 md:flex-row md:items-center md:justify-between">
           <div><p className="font-bold text-slate-950">Malvis Digital Growth</p><p className="mt-1 text-sm text-slate-500">Digital marketing and business growth platform.</p></div>
-          <div className="flex flex-wrap gap-5 text-sm font-semibold text-slate-600"><a href="#features" className="hover:text-slate-950">Features</a><a href="#how-it-works" className="hover:text-slate-950">How it works</a><Link href="/login" className="hover:text-slate-950">Login</Link><Link href="/admin/login" className="hover:text-slate-950">Admin</Link><Link href="/register" className="hover:text-slate-950">Register</Link></div>
+          <div className="flex flex-wrap gap-5 text-sm font-semibold text-slate-600"><a href="#features" className="hover:text-slate-950">Features</a><a href="#how-it-works" className="hover:text-slate-950">How it works</a><Link href="/login" className="hover:text-slate-950">Login</Link><Link href="/admin/login" className="hover:text-slate-950">Admin</Link><Link href="/services/marketing" className="hover:text-slate-950">Marketing services</Link><Link href="/register" className="hover:text-slate-950">Register</Link></div>
         </div>
       </footer>
     </main>
