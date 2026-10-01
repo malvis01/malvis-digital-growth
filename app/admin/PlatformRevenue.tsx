@@ -14,6 +14,7 @@ export default function PlatformRevenue(){
     ["Gross payments",data.grossPaid],
     ["Plan payments",data.subscriptionGross],
     ["Advertising payments",data.advertisingGross],
+    ["Marketing services",data.serviceGross],
     ["Platform revenue",data.platformRevenue],
     ["Referral payable",data.referralPending],
     ["Provider fees",data.providerFees],
