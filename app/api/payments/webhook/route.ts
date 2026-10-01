@@ -18,6 +18,15 @@ export async function POST(req: Request) {
   const {data:markedPaid,error:paymentError}=await s.from("payments").update({status:"paid",paid_at:now.toISOString(),provider_reference:ref,metadata:event.data}).eq("id",payment.id).eq("status","pending").select("id").maybeSingle();
   if(paymentError)return NextResponse.json({error:"Unable to record payment"},{status:500}); if(!markedPaid)return NextResponse.json({received:true});
 
+  if(payment.metadata?.payment_kind==="marketing_service"){
+    const fee=Math.round(Number(payment.amount_ngn)*100)/100;
+    if(fee>0) await s.from("platform_ledger").upsert({source:"marketing_service",reference_id:payment.id,entry_type:"commission",amount_ngn:fee,status:"available",notes:"Marketing service fee paid through Paystack"},{onConflict:"source,reference_id",ignoreDuplicates:true});
+    await s.from("invoices").update({status:"paid"}).eq("payment_id",payment.id);
+    const {data:b}=await s.from("businesses").select("owner_id").eq("id",payment.business_id).maybeSingle();
+    if(b?.owner_id) await s.from("notifications").insert({user_id:b.owner_id,title:"Marketing service payment successful",message:String(payment.metadata?.service_name||"Marketing service")+" payment was confirmed. We will contact you about delivery of the service.",type:"billing"});
+    return NextResponse.json({received:true});
+  }
+
   if(payment.advertisement_id){
     const fee=Math.round(Number(payment.amount_ngn)*0.03*100)/100;
     if(fee>0) await s.from("platform_ledger").upsert({source:"advertisement",reference_id:payment.id,entry_type:"commission",amount_ngn:fee,status:"available",notes:"3% platform commission from paid advertisement budget"},{onConflict:"source,reference_id",ignoreDuplicates:true});
