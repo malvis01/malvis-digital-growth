@@ -76,6 +76,7 @@ export async function POST(req: Request) {
         email,
         amount: Math.round(service.price * 100),
         reference: pay.id,
+        channels: ["card", "bank", "bank_transfer", "ussd", "qr", "payattitude"],
         callback_url: base + "/api/payments/verify",
       }),
     });
