@@ -46,6 +46,16 @@ export async function GET(){
  });
 }
 
+export async function PATCH(req:Request){
+ const s=await createClient(); const {data:{user}}=await s.auth.getUser(); if(!user)return NextResponse.json({error:"Not authenticated"},{status:401}); const {data:p}=await s.from("profiles").select("role").eq("id",user.id).maybeSingle(); if(!isAdmin(p?.role))return NextResponse.json({error:"Forbidden"},{status:403});
+ const {id,status,reason}=await req.json(); if(!["processing","paid","rejected"].includes(status))return NextResponse.json({error:"Invalid status"},{status:400});
+ const {data:w}=await s.from("platform_withdrawals").select("id,amount_ngn,status,account_name").eq("id",id).maybeSingle(); if(!w)return NextResponse.json({error:"Withdrawal not found."},{status:404}); if(w.status==="paid")return NextResponse.json({error:"Withdrawal is already paid."},{status:409});
+ if(status==="rejected"&&!String(reason||"").trim())return NextResponse.json({error:"A rejection reason is required."},{status:400});
+ const patch:any={status}; if(status==="paid")patch.processed_at=new Date().toISOString(); if(status==="rejected")patch.rejection_reason=String(reason).trim();
+ const {error}=await s.from("platform_withdrawals").update(patch).eq("id",id); if(error)return NextResponse.json({error:error.message},{status:400});
+ return NextResponse.json({ok:true});
+}
+
 export async function POST(req:Request){
  const s=await createClient();
  const {data:{user}}=await s.auth.getUser();
