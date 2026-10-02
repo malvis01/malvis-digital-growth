@@ -21,7 +21,8 @@ export async function GET(){
  const paid=payments||[];
  const gross=paid.reduce((a,x)=>a+num(x.amount_ngn),0);
  const subscriptionGross=paid.filter(x=>x.subscription_id).reduce((a,x)=>a+num(x.amount_ngn),0);
- const advertisingGross=paid.filter(x=>x.advertisement_id).reduce((a,x)=>a+num(x.amount_ngn),0);\n const serviceGross=paid.filter(x=>x.metadata?.payment_kind==="marketing_service").reduce((a,x)=>a+num(x.amount_ngn),0);
+ const advertisingGross=paid.filter(x=>x.advertisement_id).reduce((a,x)=>a+num(x.amount_ngn),0);
+ const serviceGross=paid.filter(x=>x.metadata?.payment_kind==="marketing_service").reduce((a,x)=>a+num(x.amount_ngn),0);
  const providerFees=paid.reduce((a,x)=>a+num(x.metadata?.fees),0);
  const platformRevenue=(ledger||[]).filter(x=>x.entry_type==="commission"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);
  const referralPending=(refCommissions||[]).filter(x=>x.status!=="paid"&&x.status!=="rejected").reduce((a,x)=>a+num(x.amount_ngn),0);
@@ -32,6 +33,7 @@ export async function GET(){
   grossPaid:gross,
   subscriptionGross,
   advertisingGross,
+  serviceGross,
   providerFees,
   platformRevenue,
   referralPending,
