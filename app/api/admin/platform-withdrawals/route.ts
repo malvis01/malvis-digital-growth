@@ -28,7 +28,7 @@ export async function GET(){
  const ledgerWithdrawn=(ledger||[]).filter(x=>x.entry_type==="withdrawal"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);
  const referralPending=(refCommissions||[]).filter(x=>x.status!=="paid"&&x.status!=="rejected").reduce((a,x)=>a+num(x.amount_ngn),0);
  const withdrawn=(outs||[]).filter(x=>x.status==="pending"||x.status==="processing").reduce((a,x)=>a+num(x.amount_ngn),0);
- const available=Math.max(0,platformRevenue-referralPending-withdrawn);
+ const available=Math.max(0,platformRevenue-ledgerWithdrawn-referralPending-withdrawn);
 
  return NextResponse.json({
   grossPaid:gross,
@@ -39,6 +39,7 @@ export async function GET(){
   platformRevenue,
   referralPending,
   withdrawn,
+  ledgerWithdrawn,
   available,
   paidPayments:paid.length,
   ledger:ledger||[],
