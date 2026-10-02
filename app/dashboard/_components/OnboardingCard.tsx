@@ -29,7 +29,7 @@ export default function OnboardingCard({ steps }: { steps: Step[] }) {
           </div>
         </div>
         <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/20">
-          <div className="h-full rounded-full bg-indigo-400 transition-all" style={{ width: \`\${progress}%\` }} />
+          <div className="h-full rounded-full bg-indigo-400 transition-all" style={{ width: progress + "%" }} />
         </div>
       </div>
 
@@ -39,9 +39,9 @@ export default function OnboardingCard({ steps }: { steps: Step[] }) {
             <Link
               key={step.label}
               href={step.href}
-              className={`flex items-start gap-3 rounded-xl border p-4 transition hover:shadow-sm \${step.done ? "border-emerald-200 bg-emerald-50/60" : "border-slate-200 bg-white"}`}
+              className={"flex items-start gap-3 rounded-xl border p-4 transition hover:shadow-sm " + (step.done ? "border-emerald-200 bg-emerald-50/60" : "border-slate-200 bg-white")}
             >
-              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold \${step.done ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>
+              <span className={"mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold " + (step.done ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600")}>
                 {step.done ? "✓" : index + 1}
               </span>
               <span className="min-w-0">
