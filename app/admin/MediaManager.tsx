@@ -14,7 +14,11 @@ export default function MediaManager({items}:{items:any[]}){
 
  async function change(id:string,status:string){
    const s=createClient();
+   const row=rows.find(x=>x.id===id);
    const r=await s.from("media_items").update({status,published_at:status==="approved"?new Date().toISOString():null}).eq("id",id);
+   if(!r.error && row?.owner_id && row.owner_id !== (await s.auth.getUser()).data.user?.id){
+     await s.from("notifications").insert({user_id:row.owner_id,title:status==="approved"?"Video approved":"Video rejected",message:status==="approved"?`Your video "${row.title}" has been approved and can now be published.`:`Your video "${row.title}" was rejected by the admin after review.`,type:"media_moderation"});
+   }
    if(!r.error)setRows(rows=>rows.map(x=>x.id===id?{...x,status}:x));
  }
 
@@ -65,7 +69,7 @@ export default function MediaManager({items}:{items:any[]}){
 
  return <section className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
   <h2 className="text-lg font-bold">Media moderation & uploads</h2>
-  <p className="text-sm text-slate-500">Admin can upload a video directly from a phone or paste an authorized public social-media link.</p>
+  <p className="text-sm text-slate-500">Every submitted video stays pending until an admin reviews the preview and explicitly approves or rejects it.</p>
 
   <form onSubmit={addUpload} className="mt-4 grid gap-3 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
    <h3 className="font-semibold">Upload video from phone</h3>
@@ -88,7 +92,7 @@ export default function MediaManager({items}:{items:any[]}){
   </form>
 
   <div className="mt-4 space-y-3">{rows.map(i=><div key={i.id} className="rounded-xl border p-4">
-   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+   <div className="mb-3 rounded-xl bg-slate-950 p-3">{i.preview_url && (i.source_type==="upload" ? <video src={i.preview_url} controls playsInline preload="metadata" className="max-h-72 w-full rounded-lg bg-black"/> : <a href={i.preview_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-white underline">Open submitted social video</a>)}{!i.preview_url && <p className="text-sm text-slate-300">No preview available for this submission.</p>}</div><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <div><p className="font-semibold">{i.title}</p><p className="text-xs text-slate-500">{i.media_kind} · {i.status} · {i.view_count||0} views</p></div>
     {i.status==="pending"&&<div className="flex gap-2"><button onClick={()=>change(i.id,"approved")} className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Approve</button><button onClick={()=>change(i.id,"rejected")} className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white">Reject</button></div>}
    </div>
