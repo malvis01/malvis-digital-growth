@@ -74,14 +74,14 @@ export default function MediaManager({items}:{items:any[]}){
   <p className="text-sm text-slate-500">Every submitted video stays pending until an admin reviews the preview and explicitly approves or rejects it.</p>
 
   <form onSubmit={addUpload} className="mt-4 grid gap-3 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-   <h3 className="font-semibold">Upload video from phone</h3>
+   <h3 className="font-semibold">Upload video from gallery or phone</h3>
    <input required value={upload.title} onChange={e=>setUpload({...upload,title:e.target.value})} placeholder="Video title" className="rounded-lg border bg-white px-3 py-2"/>
    <input value={upload.category} onChange={e=>setUpload({...upload,category:e.target.value})} placeholder="Category" className="rounded-lg border bg-white px-3 py-2"/>
    <textarea value={upload.description} onChange={e=>setUpload({...upload,description:e.target.value})} placeholder="Description" className="rounded-lg border bg-white px-3 py-2"/>
-   <input required type="file" accept="video/*" capture="environment" onChange={e=>setFile(e.target.files?.[0]||null)} className="rounded-lg border bg-white px-3 py-2"/>
-   <p className="text-xs text-slate-500">Maximum 100 MB · maximum 2 minutes · works with phone gallery and camera-supported browsers.</p>
+   <input required type="file" accept="video/*" onChange={e=>setFile(e.target.files?.[0]||null)} className="rounded-lg border bg-white px-3 py-2"/>
+   <p className="text-xs text-slate-500">Maximum 100 MB · maximum 2 minutes · choose an existing video from your gallery/files. Camera capture is not forced.</p>
    <label className="flex gap-2 text-sm text-slate-600"><input type="checkbox" required/> I confirm I own or have permission to publish this video.</label>
-   <button disabled={uploading} className="rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white disabled:opacity-50">{uploading?"Uploading...":"Upload video for approval"}</button>
+   <button disabled={uploading} className="rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white disabled:opacity-50">{uploading?"Uploading...":"Choose gallery video & upload"}</button>
   </form>
 
   <form onSubmit={addExternal} className="mt-4 grid gap-3 rounded-xl border p-4">
