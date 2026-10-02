@@ -23,6 +23,14 @@ export async function POST(req: Request) {
   const { data: plan } = await s.from("plans").select("id,name,slug,price_ngn,billing_interval").eq("id", planId).eq("active", true).maybeSingle();
   if (!plan) return NextResponse.json({ error: "Plan not found." }, { status: 404 });
 
+  const { data: existing } = await admin.from("subscriptions").select("id,status,ends_at").eq("business_id", b.id).eq("plan_id", plan.id).in("status", ["active","pending"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (existing?.status === "active" && existing.ends_at && new Date(existing.ends_at) > new Date()) {
+    return NextResponse.json({ error: "This plan is already active for your business." }, { status: 409 });
+  }
+  if (existing?.status === "pending") {
+    return NextResponse.json({ error: "You already have a pending payment for this plan. Check your Payments page before starting another checkout." }, { status: 409 });
+  }
+
   if (Number(plan.price_ngn) <= 0) {
     const starts = new Date(), ends = new Date(starts.getTime() + 30 * 86400000);
     const { data: freeSub, error } = await admin.from("subscriptions").insert({
