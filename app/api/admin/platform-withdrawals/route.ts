@@ -24,9 +24,10 @@ export async function GET(){
  const advertisingGross=paid.filter(x=>x.advertisement_id).reduce((a,x)=>a+num(x.amount_ngn),0);
  const serviceGross=paid.filter(x=>x.metadata?.payment_kind==="marketing_service").reduce((a,x)=>a+num(x.amount_ngn),0);
  const providerFees=paid.reduce((a,x)=>a+num(x.metadata?.fees),0);
- const platformRevenue=(ledger||[]).filter(x=>x.entry_type==="commission"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);\n const ledgerWithdrawn=(ledger||[]).filter(x=>x.entry_type==="withdrawal"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);
+ const platformRevenue=(ledger||[]).filter(x=>x.entry_type==="commission"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);
+ const ledgerWithdrawn=(ledger||[]).filter(x=>x.entry_type==="withdrawal"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);
  const referralPending=(refCommissions||[]).filter(x=>x.status!=="paid"&&x.status!=="rejected").reduce((a,x)=>a+num(x.amount_ngn),0);
- const withdrawn=(outs||[]).filter(x=>x.status!=="rejected").reduce((a,x)=>a+num(x.amount_ngn),0);
+ const withdrawn=(outs||[]).filter(x=>x.status==="pending"||x.status==="processing").reduce((a,x)=>a+num(x.amount_ngn),0);
  const available=Math.max(0,platformRevenue-referralPending-withdrawn);
 
  return NextResponse.json({
@@ -53,6 +54,7 @@ export async function PATCH(req:Request){
  if(status==="rejected"&&!String(reason||"").trim())return NextResponse.json({error:"A rejection reason is required."},{status:400});
  const patch:any={status}; if(status==="paid")patch.processed_at=new Date().toISOString(); if(status==="rejected")patch.rejection_reason=String(reason).trim();
  const {error}=await s.from("platform_withdrawals").update(patch).eq("id",id); if(error)return NextResponse.json({error:error.message},{status:400});
+ if(status==="paid"){ const {data:existing}=await s.from("platform_ledger").select("id").eq("reference_id",id).eq("entry_type","withdrawal").maybeSingle(); if(!existing){ const {error:ledgerError}=await s.from("platform_ledger").insert({source:"platform_withdrawal",reference_id:id,entry_type:"withdrawal",amount_ngn:num(w.amount_ngn),status:"available",notes:"Platform withdrawal marked paid by admin"}); if(ledgerError)return NextResponse.json({error:"Withdrawal was marked paid but ledger recording failed. Reconciliation is required."},{status:500}); } }
  return NextResponse.json({ok:true});
 }
 
@@ -71,7 +73,8 @@ export async function POST(req:Request){
   s.from("platform_withdrawals").select("amount_ngn,status").neq("status","rejected"),
   s.from("commissions").select("amount_ngn,status")
  ]);
- const platformRevenue=(ledger||[]).filter(x=>x.entry_type==="commission"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);\n const ledgerWithdrawn=(ledger||[]).filter(x=>x.entry_type==="withdrawal"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);
+ const platformRevenue=(ledger||[]).filter(x=>x.entry_type==="commission"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);
+ const ledgerWithdrawn=(ledger||[]).filter(x=>x.entry_type==="withdrawal"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);
  const referralPending=(refCommissions||[]).filter(x=>x.status!=="paid"&&x.status!=="rejected").reduce((a,x)=>a+num(x.amount_ngn),0);
  const reserved=(outs||[]).filter(x=>x.status==="pending"||x.status==="processing").reduce((a,x)=>a+num(x.amount_ngn),0);
  const available=Math.max(0,platformRevenue-ledgerWithdrawn-referralPending-reserved);
