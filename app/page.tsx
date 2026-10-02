@@ -57,7 +57,7 @@ export default async function Home() {
           <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
             <a href="#features" className="transition hover:text-slate-950">Features</a>
             <a href="#how-it-works" className="transition hover:text-slate-950">How it works</a>
-            <a href="/businesses" className="transition hover:text-slate-950">Businesses</a><a href="#businesses" className="transition hover:text-slate-950">For businesses</a>
+            <Link href="/businesses" className="transition hover:text-slate-950">Businesses</Link><a href="#businesses" className="transition hover:text-slate-950">For businesses</a>
             <a href="#faq" className="transition hover:text-slate-950">FAQ</a>
           </nav>
           <div className="flex items-center gap-2">
@@ -167,7 +167,7 @@ export default async function Home() {
       <section id="how-it-works" className="bg-white py-20">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr]">
-            <div><p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">How it works</p><h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Start simple. Build from there.</h2><p className="mt-5 leading-8 text-slate-600">Set up your presence first, then use the platform's marketing and growth tools as your business needs them.</p><Link href="/register" className="mt-7 inline-flex rounded-xl bg-slate-950 px-5 py-3 font-bold text-white hover:bg-slate-800">Start your account</Link></div>
+            <div><p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">How it works</p><h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Start simple. Build from there.</h2><p className="mt-5 leading-8 text-slate-600">Set up your presence first, then use the platform&apos;s marketing and growth tools as your business needs them.</p><Link href="/register" className="mt-7 inline-flex rounded-xl bg-slate-950 px-5 py-3 font-bold text-white hover:bg-slate-800">Start your account</Link></div>
             <div className="grid gap-4 sm:grid-cols-2">{steps.map(([n,t,d])=><article key={n} className="rounded-3xl border border-slate-200 p-6"><span className="text-sm font-black text-slate-400">{n}</span><h3 className="mt-5 text-lg font-bold text-slate-950">{t}</h3><p className="mt-2 leading-7 text-slate-600">{d}</p></article>)}</div>
           </div>
         </div>
