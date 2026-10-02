@@ -4,12 +4,9 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeNigeriaPhone } from "@/lib/phone";
-import { phoneToAuthEmail } from "@/lib/phoneAuth";
 import PasswordRequirements from "./PasswordRequirements";
 
 type Mode = "login" | "register";
-
-const LEGACY_AUTH_DOMAIN = "malvisdigitalgrowth.com";
 
 export default function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
@@ -26,7 +23,6 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
     try {
       const normalizedPhone = normalizeNigeriaPhone(phone);
-      const authEmail = phoneToAuthEmail(normalizedPhone);
 
       if (
         password.length < 8 ||
@@ -43,22 +39,10 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       const supabase = createClient();
 
       if (mode === "login") {
-        let { error } = await supabase.auth.signInWithPassword({
-          email: authEmail,
+        const { error } = await supabase.auth.signInWithPassword({
+          phone: normalizedPhone,
           password,
         });
-
-        // Keep older business accounts working after the identifier-domain fix.
-        if (error) {
-          const legacyEmail = `${normalizedPhone.replace(/\D/g, "")}@${LEGACY_AUTH_DOMAIN}`;
-          if (legacyEmail !== authEmail) {
-            const legacyResult = await supabase.auth.signInWithPassword({
-              email: legacyEmail,
-              password,
-            });
-            error = legacyResult.error;
-          }
-        }
 
         if (error) throw error;
 
@@ -72,7 +56,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       }
 
       const { data, error } = await supabase.auth.signUp({
-        email: authEmail,
+        phone: normalizedPhone,
         password,
         options: {
           data: {
@@ -83,15 +67,14 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       });
 
       if (error) throw error;
+      if (!data.user) throw new Error("Account could not be created. Please try again.");
 
-      if (!data.session || !data.user) {
+      if (!data.session) {
         throw new Error(
-          "Account created, but Supabase email confirmation is still enabled. Turn off email confirmation in Authentication settings so businesses can log in with phone + password without OTP."
+          "Your account was created, but phone confirmation is enabled. Turn off phone confirmation in Supabase Auth settings because this platform uses phone + password without OTP."
         );
       }
 
-      // The database trigger normally creates this business automatically.
-      // This fallback keeps registration reliable if the trigger was interrupted.
       const { data: existingBusiness } = await supabase
         .from("businesses")
         .select("id")
@@ -99,23 +82,30 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         .maybeSingle();
 
       if (!existingBusiness) {
-        const slugBase = businessName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-        await supabase.from("businesses").insert({
+        const slugBase = businessName
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+
+        const { error: businessError } = await supabase.from("businesses").insert({
           owner_id: data.user.id,
           name: businessName.trim(),
           slug: `${slugBase || "business"}-${data.user.id.slice(0, 8)}`,
           phone: normalizedPhone,
         });
+
+        if (businessError) throw businessError;
       }
 
-      setMessage("Business account created successfully. You can now use your phone number and password to log in.");
+      setMessage(
+        "Business account created successfully. You can now use your phone number and password to log in."
+      );
       setPhone("");
       setPassword("");
       setBusinessName("");
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Something went wrong."
-      );
+      setMessage(error instanceof Error ? error.message : "Something went wrong.");
     } finally {
       setLoading(false);
     }
