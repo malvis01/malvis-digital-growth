@@ -1,10 +1,9 @@
-const AUTH_EMAIL_DOMAIN = "phone.malvisdigitalgrowth.com";
+const AUTH_EMAIL_DOMAIN = "malvisdigitalgrowth.com";
 
 /**
  * Malvis uses a phone + password UI without SMS/OTP.
- * Supabase Auth still needs an email-shaped identifier internally.
- * The database trigger recognizes the 234XXXXXXXXXX local part and
- * stores the normalized Nigerian phone number in the user's profile.
+ * Supabase Email Auth is used only as the secure credential/session layer; the user-facing identifier remains the normalized Nigerian phone number.
+ * The phone number is also stored in the business profile as the canonical contact identifier.
  */
 export function phoneToAuthEmail(normalizedPhone: string) {
   const digits = normalizedPhone.replace(/\D/g, "");
