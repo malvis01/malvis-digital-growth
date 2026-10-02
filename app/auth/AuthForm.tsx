@@ -57,52 +57,35 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         throw new Error("Enter your business name.");
       }
 
-      const { data, error } = await supabase.auth.signUp({
-        email: authEmail,
-        password,
-        options: {
-          data: {
-            phone: normalizedPhone,
-            business_name: businessName.trim(),
-          },
-        },
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: normalizedPhone,
+          password,
+          businessName: businessName.trim(),
+        }),
       });
 
-      if (error) throw error;
-      if (!data.user) throw new Error("Account could not be created. Please try again.");
+      const result = await response.json();
 
-      if (!data.session) {
-        throw new Error(
-          "Your account was created, but email confirmation is enabled. Turn off email confirmation in Supabase Auth settings because this platform uses phone + password without OTP."
-        );
+      if (!response.ok) {
+        throw new Error(result.error || "Account could not be created. Please try again.");
       }
 
-      const { data: existingBusiness } = await supabase
-        .from("businesses")
-        .select("id")
-        .eq("owner_id", data.user.id)
-        .maybeSingle();
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password,
+      });
 
-      if (!existingBusiness) {
-        const slugBase = businessName
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "");
+      if (loginError) throw loginError;
 
-        const { error: businessError } = await supabase.from("businesses").insert({
-          owner_id: data.user.id,
-          name: businessName.trim(),
-          slug: `${slugBase || "business"}-${data.user.id.slice(0, 8)}`,
-          phone: normalizedPhone,
-        });
-
-        if (businessError) throw businessError;
-      }
-
-      setMessage(
-        "Business account created successfully. You can now use your phone number and password to log in."
-      );
+      setMessage("Business account created successfully. Welcome to Malvis Digital Growth!");
+      setPhone("");
+      setPassword("");
+      setBusinessName("");
+      router.push("/dashboard");
+      router.refresh();
       setPhone("");
       setPassword("");
       setBusinessName("");
