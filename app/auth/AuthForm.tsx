@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeNigeriaPhone } from "@/lib/phone";
+import { phoneToAuthEmail } from "@/lib/phoneAuth";
 import PasswordRequirements from "./PasswordRequirements";
 
 type Mode = "login" | "register";
@@ -23,6 +24,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
     try {
       const normalizedPhone = normalizeNigeriaPhone(phone);
+      const authEmail = phoneToAuthEmail(normalizedPhone);
 
       if (
         password.length < 8 ||
@@ -40,7 +42,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({
-          phone: normalizedPhone,
+          email: authEmail,
           password,
         });
 
@@ -56,7 +58,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       }
 
       const { data, error } = await supabase.auth.signUp({
-        phone: normalizedPhone,
+        email: authEmail,
         password,
         options: {
           data: {
@@ -71,7 +73,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
       if (!data.session) {
         throw new Error(
-          "Your account was created, but phone confirmation is enabled. Turn off phone confirmation in Supabase Auth settings because this platform uses phone + password without OTP."
+          "Your account was created, but email confirmation is enabled. Turn off email confirmation in Supabase Auth settings because this platform uses phone + password without OTP."
         );
       }
 
