@@ -33,14 +33,15 @@ export default async function DashboardPage() {
 
   const businessId = business?.id ?? "";
 
-  const [{ count: productCount }, { count: serviceCount }, { count: leadCount }, { count: campaignCount }, { count: videoCount }] =
-    await Promise.all([
-      supabase.from("products").select("*", { count: "exact", head: true }).eq("business_id", businessId),
-      supabase.from("services").select("*", { count: "exact", head: true }).eq("business_id", businessId),
-      supabase.from("leads").select("*", { count: "exact", head: true }).eq("business_id", businessId),
-      supabase.from("campaigns").select("*", { count: "exact", head: true }).eq("business_id", businessId),
-      supabase.from("media_items").select("*", { count: "exact", head: true }).eq("business_id", businessId).eq("media_kind", "business_promotion"),
-    ]);
+  const [{ count: productCount }, { count: serviceCount }, { count: leadCount }, { count: campaignCount }, { count: videoCount }] = businessId
+    ? await Promise.all([
+        supabase.from("products").select("*", { count: "exact", head: true }).eq("business_id", businessId),
+        supabase.from("services").select("*", { count: "exact", head: true }).eq("business_id", businessId),
+        supabase.from("leads").select("*", { count: "exact", head: true }).eq("business_id", businessId),
+        supabase.from("campaigns").select("*", { count: "exact", head: true }).eq("business_id", businessId),
+        supabase.from("media_items").select("*", { count: "exact", head: true }).eq("business_id", businessId).eq("media_kind", "business_promotion"),
+      ])
+    : [{ count: 0 }, { count: 0 }, { count: 0 }, { count: 0 }, { count: 0 }];
 
   const profileComplete = Boolean(
     business &&
