@@ -1,10 +1,10 @@
 import {NextResponse} from "next/server";import {createClient} from "@/lib/supabase/server";
 async function admin(){const s=await createClient();const {data:{user}}=await s.auth.getUser();if(!user)return [s,null,NextResponse.json({error:"Not authenticated"},{status:401})] as const;const {data:p}=await s.from("profiles").select("role").eq("id",user.id).maybeSingle();if(p?.role!=="admin")return [s,null,NextResponse.json({error:"Forbidden"},{status:403})] as const;return [s,user,null] as const;}
 export async function GET(){const [s,,err]=await admin();if(err)return err;const {data,error}=await s.from("withdrawals").select("*").order("created_at",{ascending:false});return NextResponse.json({rows:data||[],error:error?.message});}
-export async function PATCH(req:Request){const [s,,err]=await admin();if(err)return err;const {id,status}=await req.json();if(!["processing","paid","rejected"].includes(status))return NextResponse.json({error:"Invalid status"},{status:400});
+export async function PATCH(req:Request){const [s,,err]=await admin();if(err)return err;const {id,status,reason}=await req.json();if(!["processing","paid","rejected"].includes(status))return NextResponse.json({error:"Invalid status"},{status:400});
  const {data:w}=await s.from("withdrawals").select("id,profile_id,amount_ngn,status").eq("id",id).maybeSingle();if(!w)return NextResponse.json({error:"Withdrawal not found."},{status:404});if(w.status==="paid")return NextResponse.json({error:"Withdrawal is already paid."},{status:409});
- const patch:any={status};if(status==="paid")patch.processed_at=new Date().toISOString();
+ const patch:any={status};if(status==="paid")patch.processed_at=new Date().toISOString();if(status==="rejected"){if(!String(reason||"").trim())return NextResponse.json({error:"A rejection reason is required."},{status:400});patch.rejection_reason=String(reason).trim();}
  const {error}=await s.from("withdrawals").update(patch).eq("id",id);if(error)return NextResponse.json({error:error.message},{status:400});
- await s.from("notifications").insert({user_id:w.profile_id,title:"Withdrawal updated",message:"Your withdrawal request is now "+status+".",type:"commission"});
+ await s.from("notifications").insert({user_id:w.profile_id,title:"Withdrawal updated",message:status==="rejected"?"Your withdrawal request was rejected. Reason: "+String(reason).trim():"Your withdrawal request is now "+status+".",type:"commission"});
  return NextResponse.json({ok:true});
 }
