@@ -17,10 +17,15 @@ export default async function AdminPage(){
   s.from("advertisements").select("id,title,status,budget_ngn,placement,created_at").order("created_at",{ascending:false}).limit(100),
   s.from("leads").select("id,name,status,phone,email,created_at").order("created_at",{ascending:false}).limit(100),
   s.from("referrals").select("id,referral_code,status,created_at").order("created_at",{ascending:false}).limit(100),
-  s.from("media_items").select("id,title,media_kind,status,created_at").order("created_at",{ascending:false}).limit(100),
+  s.from("media_items").select("id,title,media_kind,status,created_at,owner_id,business_id,source_type,source_url,storage_path").order("created_at",{ascending:false}).limit(100),
   s.from("media_views").select("media_id")
  ]);
  const viewCounts=(mediaViews.data||[]).reduce((a:any,v:any)=>{a[v.media_id]=(a[v.media_id]||0)+1;return a;},{});
+ const mediaWithPreview=await Promise.all((media.data??[]).map(async(m:any)=>{
+   if(m.source_url) return {...m,preview_url:m.source_url};
+   if(m.storage_path){const {data}=await s.storage.from("media").createSignedUrl(m.storage_path,3600);return {...m,preview_url:data?.signedUrl||null};}
+   return {...m,preview_url:null};
+ }));
  const cards=[["Users",users.data?.length||0],["Businesses",businesses.data?.length||0],["Campaigns",campaigns.data?.length||0],["Ads",ads.data?.length||0],["Leads",leads.data?.length||0],["Referrals",referrals.data?.length||0]];
- return <main className="min-h-screen bg-slate-50 p-4 sm:p-8"><div className="mx-auto max-w-7xl"><header className="rounded-2xl bg-white p-5 shadow-sm"><p className="text-sm font-semibold text-indigo-600">Malvis Digital Growth</p><h1 className="text-2xl font-bold">Admin control center</h1><p className="text-sm text-slate-500">Signed in as {user.email}</p></header><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{cards.map(([x,n])=><div key={String(x)} className="rounded-2xl bg-white p-5 shadow-sm"><p className="text-sm text-slate-500">{x}</p><p className="mt-2 text-3xl font-bold">{n}</p></div>)}</div><PlatformRevenue/><MediaManager items={(media.data??[]).map((m:any)=>({...m,view_count:viewCounts[m.id]||0}))}/><AdminManager users={users.data??[]} businesses={businesses.data??[]} campaigns={campaigns.data??[]} ads={ads.data??[]} leads={leads.data??[]} referrals={referrals.data??[]}/></div></main>;
+ return <main className="min-h-screen bg-slate-50 p-4 sm:p-8"><div className="mx-auto max-w-7xl"><header className="rounded-2xl bg-white p-5 shadow-sm"><p className="text-sm font-semibold text-indigo-600">Malvis Digital Growth</p><h1 className="text-2xl font-bold">Admin control center</h1><p className="text-sm text-slate-500">Signed in as {user.email}</p></header><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{cards.map(([x,n])=><div key={String(x)} className="rounded-2xl bg-white p-5 shadow-sm"><p className="text-sm text-slate-500">{x}</p><p className="mt-2 text-3xl font-bold">{n}</p></div>)}</div><PlatformRevenue/><MediaManager items={mediaWithPreview.map((m:any)=>({...m,view_count:viewCounts[m.id]||0}))}/><AdminManager users={users.data??[]} businesses={businesses.data??[]} campaigns={campaigns.data??[]} ads={ads.data??[]} leads={leads.data??[]} referrals={referrals.data??[]}/></div></main>;
 }
