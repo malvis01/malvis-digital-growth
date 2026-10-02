@@ -4,6 +4,8 @@ export default function PlatformRevenue(){
  const [data,setData]=useState<any>(null),[form,setForm]=useState({amount:"",bankName:"",accountName:"",accountNumber:""}),[msg,setMsg]=useState("");
  const [ledgerFilter,setLedgerFilter]=useState("");
  async function load(){const r=await fetch("/api/admin/platform-withdrawals");setData(await r.json())}
+ // This effect performs the initial client-side data fetch for the admin panel.
+ // eslint-disable-next-line react-hooks/set-state-in-effect
  useEffect(()=>{load()},[]);
  async function updateWithdrawal(id:string,status:string,reason=""){const r=await fetch("/api/admin/platform-withdrawals",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status,reason})});const j=await r.json();setMsg(j.error||"Platform withdrawal updated.");if(r.ok)load();}
 
