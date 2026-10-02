@@ -1,0 +1,92 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { normalizeNigeriaPhone } from "@/lib/phone";
+import { phoneToAuthEmail } from "@/lib/phoneAuth";
+
+export const runtime = "nodejs";
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const normalizedPhone = normalizeNigeriaPhone(String(body.phone ?? ""));
+    const password = String(body.password ?? "");
+    const businessName = String(body.businessName ?? "").trim();
+
+    if (!businessName) {
+      return NextResponse.json({ error: "Enter your business name." }, { status: 400 });
+    }
+
+    if (
+      password.length < 8 ||
+      !/[a-z]/.test(password) ||
+      !/[A-Z]/.test(password) ||
+      !/\d/.test(password) ||
+      !/[^A-Za-z0-9]/.test(password)
+    ) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters and include uppercase, lowercase, number and symbol." },
+        { status: 400 }
+      );
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json(
+        { error: "Account registration is not configured yet. Add SUPABASE_SERVICE_ROLE_KEY to the Netlify environment variables." },
+        { status: 503 }
+      );
+    }
+
+    const admin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const authEmail = phoneToAuthEmail(normalizedPhone);
+
+    const { data: existing } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("phone", normalizedPhone)
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "A business account already exists for this phone number. Please log in." },
+        { status: 409 }
+      );
+    }
+
+    const { data, error } = await admin.auth.admin.createUser({
+      email: authEmail,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        phone: normalizedPhone,
+        business_name: businessName,
+      },
+    });
+
+    if (error) {
+      if (/already.*registered|already.*exists|duplicate/i.test(error.message)) {
+        return NextResponse.json(
+          { error: "An account already exists for this phone number. Please log in." },
+          { status: 409 }
+        );
+      }
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (!data.user) {
+      return NextResponse.json({ error: "Account could not be created." }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unable to create account." },
+      { status: 400 }
+    );
+  }
+}
