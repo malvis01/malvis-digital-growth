@@ -24,7 +24,7 @@ export async function GET(){
  const advertisingGross=paid.filter(x=>x.advertisement_id).reduce((a,x)=>a+num(x.amount_ngn),0);
  const serviceGross=paid.filter(x=>x.metadata?.payment_kind==="marketing_service").reduce((a,x)=>a+num(x.amount_ngn),0);
  const providerFees=paid.reduce((a,x)=>a+num(x.metadata?.fees),0);
- const platformRevenue=(ledger||[]).filter(x=>x.entry_type==="commission"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);
+ const platformRevenue=(ledger||[]).filter(x=>x.entry_type==="commission"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);\n const ledgerWithdrawn=(ledger||[]).filter(x=>x.entry_type==="withdrawal"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);
  const referralPending=(refCommissions||[]).filter(x=>x.status!=="paid"&&x.status!=="rejected").reduce((a,x)=>a+num(x.amount_ngn),0);
  const withdrawn=(outs||[]).filter(x=>x.status!=="rejected").reduce((a,x)=>a+num(x.amount_ngn),0);
  const available=Math.max(0,platformRevenue-referralPending-withdrawn);
@@ -71,10 +71,10 @@ export async function POST(req:Request){
   s.from("platform_withdrawals").select("amount_ngn,status").neq("status","rejected"),
   s.from("commissions").select("amount_ngn,status")
  ]);
- const platformRevenue=(ledger||[]).filter(x=>x.entry_type==="commission").reduce((a,x)=>a+num(x.amount_ngn),0);
+ const platformRevenue=(ledger||[]).filter(x=>x.entry_type==="commission"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);\n const ledgerWithdrawn=(ledger||[]).filter(x=>x.entry_type==="withdrawal"&&x.status==="available").reduce((a,x)=>a+num(x.amount_ngn),0);
  const referralPending=(refCommissions||[]).filter(x=>x.status!=="paid"&&x.status!=="rejected").reduce((a,x)=>a+num(x.amount_ngn),0);
- const reserved=(outs||[]).reduce((a,x)=>a+num(x.amount_ngn),0);
- const available=Math.max(0,platformRevenue-referralPending-reserved);
+ const reserved=(outs||[]).filter(x=>x.status==="pending"||x.status==="processing").reduce((a,x)=>a+num(x.amount_ngn),0);
+ const available=Math.max(0,platformRevenue-ledgerWithdrawn-referralPending-reserved);
  if(n>available)return NextResponse.json({error:"Insufficient platform revenue balance."},{status:400});
 
  const {error}=await s.from("platform_withdrawals").insert({amount_ngn:n,bank_name:bankName,account_name:accountName,account_number:String(accountNumber),status:"pending"});
