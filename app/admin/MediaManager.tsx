@@ -50,7 +50,7 @@ export default function MediaManager({items}:{items:any[]}){
        v.onerror=()=>resolve(null); v.src=URL.createObjectURL(file);
      });
      if(duration===null)throw new Error("We could not read the video duration. Please choose a standard video file.");
-     if(duration>120)throw new Error("Business promotion videos can be up to 2 minutes. Admin uploads should also stay within 2 minutes for consistency.");
+     if(duration>60*60)throw new Error("Admin videos can be up to 60 minutes.");
      const s=createClient(); const {data:{user}}=await s.auth.getUser(); if(!user)throw new Error("Your admin session has expired. Please log in again.");
      const ext=file.name.split(".").pop()||"mp4";
      const path=user.id+"/admin/"+crypto.randomUUID()+"."+ext;
@@ -79,7 +79,7 @@ export default function MediaManager({items}:{items:any[]}){
    <input value={upload.category} onChange={e=>setUpload({...upload,category:e.target.value})} placeholder="Category" className="rounded-lg border bg-white px-3 py-2"/>
    <textarea value={upload.description} onChange={e=>setUpload({...upload,description:e.target.value})} placeholder="Description" className="rounded-lg border bg-white px-3 py-2"/>
    <input required type="file" accept="video/*" onChange={e=>setFile(e.target.files?.[0]||null)} className="rounded-lg border bg-white px-3 py-2"/>
-   <p className="text-xs text-slate-500">Maximum 100 MB · maximum 2 minutes · choose an existing video from your gallery/files. Camera capture is not forced.</p>
+   <p className="text-xs text-slate-500">Maximum 100 MB · maximum 60 minutes · choose an existing video from your gallery/files. Camera capture is not forced.</p>
    <label className="flex gap-2 text-sm text-slate-600"><input type="checkbox" required/> I confirm I own or have permission to publish this video.</label>
    <button disabled={uploading} className="rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white disabled:opacity-50">{uploading?"Uploading...":"Choose gallery video & upload"}</button>
   </form>
