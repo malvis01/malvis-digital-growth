@@ -87,13 +87,19 @@ export async function POST(request: Request) {
     createdUserId = data.user.id;
 
     const referralCode = "MALVIS" + data.user.id.replace(/-/g, "").slice(0, 8).toUpperCase();
-    const { error: profileError } = await admin.from("profiles").insert({
+    const profileInsert = {
       id: data.user.id,
       phone: normalizedPhone,
       full_name: businessName,
       role: "business_owner",
       referral_code: referralCode,
-    });
+    };
+
+    // Keep the type escape local: the live Supabase schema has these columns,
+    // but this repository does not currently ship generated Database types.
+    const { error: profileError } = await admin
+      .from("profiles")
+      .insert(profileInsert as any);
 
     if (profileError) {
       await admin.auth.admin.deleteUser(data.user.id);
@@ -114,14 +120,18 @@ export async function POST(request: Request) {
       .slice(0, 48) || "business";
     const slug = baseSlug + "-" + data.user.id.replace(/-/g, "").slice(0, 6).toLowerCase();
 
-    const { error: businessError } = await admin.from("businesses").insert({
+    const businessInsert = {
       owner_id: data.user.id,
       name: businessName,
       slug,
       phone: normalizedPhone,
       state: "Bayelsa",
       status: "active",
-    });
+    };
+
+    const { error: businessError } = await admin
+      .from("businesses")
+      .insert(businessInsert as any);
 
     if (businessError) {
       await admin.from("profiles").delete().eq("id", data.user.id);
