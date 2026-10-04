@@ -8,7 +8,6 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   let admin: ReturnType<typeof createClient> | null = null;
   let createdUserId: string | null = null;
-  let profileCreated = false;
 
   try {
     const body = await request.json();
@@ -48,6 +47,7 @@ export async function POST(request: Request) {
     });
 
     const authEmail = phoneToAuthEmail(normalizedPhone);
+
     const { data: existing, error: lookupError } = await admin
       .from("profiles")
       .select("id")
@@ -55,8 +55,12 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (lookupError) {
-      return NextResponse.json({ error: "We could not check this phone number right now. Please try again." }, { status: 503 });
+      return NextResponse.json(
+        { error: "We could not check this phone number right now. Please try again." },
+        { status: 503 }
+      );
     }
+
     if (existing) {
       return NextResponse.json(
         { error: "A business account already exists for this phone number. Please log in." },
@@ -64,11 +68,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Supabase's auth.users trigger creates the matching profile and business
+    // automatically from the user metadata. Do not insert either row here,
+    // otherwise registration can fail with a duplicate profiles primary key.
     const { data, error } = await admin.auth.admin.createUser({
       email: authEmail,
       password,
       email_confirm: true,
-      user_metadata: { phone: normalizedPhone, business_name: businessName },
+      user_metadata: {
+        phone: normalizedPhone,
+        business_name: businessName,
+        full_name: businessName,
+      },
     });
 
     if (error) {
@@ -84,62 +95,36 @@ export async function POST(request: Request) {
     if (!data.user) {
       return NextResponse.json({ error: "Account could not be created." }, { status: 500 });
     }
+
     createdUserId = data.user.id;
 
-    const referralCode = "MALVIS" + data.user.id.replace(/-/g, "").slice(0, 8).toUpperCase();
-    const profileInsert = {
-      id: data.user.id,
-      phone: normalizedPhone,
-      full_name: businessName,
-      role: "business_owner",
-      referral_code: referralCode,
-    };
-
-    // Keep the type escape local: the live Supabase schema has these columns,
-    // but this repository does not currently ship generated Database types.
-    const { error: profileError } = await admin
+    // Verify that the database trigger completed its work before reporting success.
+    const { data: profile, error: profileLookupError } = await admin
       .from("profiles")
-      .insert(profileInsert as any);
+      .select("id")
+      .eq("id", data.user.id)
+      .maybeSingle();
 
-    if (profileError) {
+    if (profileLookupError || !profile) {
       await admin.auth.admin.deleteUser(data.user.id);
       createdUserId = null;
       return NextResponse.json(
-        { error: "Your account profile could not be created. No account was left half-registered; please try again." },
+        { error: "Your account profile could not be created. Please try again." },
         { status: 500 }
       );
     }
-    profileCreated = true;
 
-    const baseSlug = businessName
-      .toLowerCase()
-      .normalize("NFKD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 48) || "business";
-    const slug = baseSlug + "-" + data.user.id.replace(/-/g, "").slice(0, 6).toLowerCase();
-
-    const businessInsert = {
-      owner_id: data.user.id,
-      name: businessName,
-      slug,
-      phone: normalizedPhone,
-      state: "Bayelsa",
-      status: "active",
-    };
-
-    const { error: businessError } = await admin
+    const { data: business, error: businessLookupError } = await admin
       .from("businesses")
-      .insert(businessInsert as any);
+      .select("id")
+      .eq("owner_id", data.user.id)
+      .maybeSingle();
 
-    if (businessError) {
-      await admin.from("profiles").delete().eq("id", data.user.id);
-      profileCreated = false;
+    if (businessLookupError || !business) {
       await admin.auth.admin.deleteUser(data.user.id);
       createdUserId = null;
       return NextResponse.json(
-        { error: "Your business profile could not be created, so registration was safely rolled back. Please try again." },
+        { error: "Your business profile could not be created. Please try again." },
         { status: 500 }
       );
     }
@@ -147,10 +132,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     if (admin && createdUserId) {
-      if (profileCreated) await admin.from("profiles").delete().eq("id", createdUserId);
-      await admin.from("businesses").delete().eq("owner_id", createdUserId);
       await admin.auth.admin.deleteUser(createdUserId);
     }
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to create account." },
       { status: 400 }
